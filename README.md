@@ -1,26 +1,28 @@
 # dsh-auto-load-earlier
 
-DSH（DeepSeek Harness）Web 客户端的滚动自动加载插件：**往上翻不再需要停下来点「加载更早」。**
+**English** | [简体中文](README.zh.md)
 
-聊天页只驻留历史尾部的窗口，翻到顶会停住，必须手动点一下按钮再等一页回来。这个插件把这个动作接掉 —— 检测到你在往上翻，就替你去点那个按钮。它调用的是官方 `loadEarlier()` 的同一条路径（取消进行中的工作 → 保持滚动锚点 → 暂停跟随底部），不碰数据层，也不修改任何官方包。
+Scroll-driven history autoload for the DSH (DeepSeek Harness) web client — **no more stopping to click "Load earlier" at the top of a transcript.**
 
-## 两种触发
+The chat view keeps only a tail window of the transcript resident. Scroll to the top and it stops: you have to aim at a button, click it, and wait for a page to arrive. This plugin removes that step — when it detects that you are scrolling up, it clicks the button for you. It goes through the same official path as a real click (cancel in-flight work → preserve the scroll anchor → pause tail-following), touches no data layer, and patches no official package.
 
-| 档位 | 条件 | 用途 |
+## Two triggers
+
+| Mode | Condition | Purpose |
 |---|---|---|
-| 慢速（接近顶部） | 距顶 ≤ 140px，且累计上滑 ≥ 48px | 一页一页往回读 |
-| 快速（速度预取） | 上滑 **≥ 900 px/s** 或 160ms 内滑过 1 屏，且距顶 ≤ 3 屏 | 快速跳回很早的位置 |
+| Proximity | within 140px of the top, and ≥48px of accumulated upward scroll | reading back one page at a time |
+| Velocity (prefetch) | upward speed ≥ 900 px/s, or one viewport within 160ms — while within 3 screens of the top | jumping back to much earlier history |
 
-快速档会**提前 3 屏**开始抢，所以冲到顶时上面已经在加载了。连续预取有上限（一次甩动最多 8 页，静默 2 秒后计数清零），避免一口气把几千条历史全塞进 DOM。
+Velocity mode starts **3 screens early**, so by the time you reach the top the next page is already loading. Consecutive prefetches are capped (8 pages per fling, counter reset after 2s idle) so that a single fling cannot mount thousands of rows at once.
 
-慢滚不会误触发：实测 Firefox 行模式 4–16 格/秒、像素模式 3–6 格/秒，触发次数均为 0。
+Slow scrolling never misfires: 0 triggers measured at 4–16 wheel notches/s in Firefox line mode and 3–6 notches/s in pixel mode.
 
-## 安装
+## Install
 
-作为本地插件挂到 profile 上。
+Install it as a local plugin on the profile.
 
-1. 把本仓库放进 `dsh-home/plugins-local/`，目录名 `dsh-auto-load-earlier`。
-2. 在 `dsh-home/profiles/web/cordis.patch.yml` 末尾追加：
+1. Drop this repository into `dsh-home/plugins-local/` as `dsh-auto-load-earlier`.
+2. Append to `dsh-home/profiles/web/cordis.patch.yml`:
 
 ```yaml
 - insert:
@@ -28,56 +30,55 @@ DSH（DeepSeek Harness）Web 客户端的滚动自动加载插件：**往上翻�
       name: ../../plugins-local/dsh-auto-load-earlier/lib/index.js
 ```
 
-3. 保存后 patch 会热加载（约 1 分钟），然后 **Ctrl+Shift+R 硬刷新页面**。
+3. Save. The patch hot-loads in about a minute, then **Ctrl+Shift+R** to hard-reload the page.
 
-停用：删掉这一段，或给它加 `disabled: true`，约 1 分钟还原，不用重启。
+To disable: delete that block, or add `disabled: true` to it. Takes about a minute; no restart needed.
 
-> 不建议用 `dsh plugin add` 装配：它会重链接 `node_modules`，在 Windows 上可能让运行中的进程崩掉（原生模块已被加载，无法替换）。按路径 insert 更稳。
+> Do not use `dsh plugin add` for this. It re-links `node_modules`, which on Windows can crash a running process (native modules are already loaded and cannot be replaced). A path insert is safer.
 
-## 调参
+## Tuning
 
-运行时改，刷新页面即生效，不用重载插件：
+Tune at runtime from the console; changes apply on the next page load, no plugin reload needed:
 
 ```js
-// 控制台
 __DSH_AUTOLOAD_TUNING__ = {
-  thresholdPx: 140,        // 接近顶部的距离（px）
-  minUpScrollPx: 48,       // 慢速档需要累计的上滑距离
-  cooldownMs: 900,         // 慢速档两次触发的最小间隔
-  fastWheelPxPerSec: 900,  // 快速档速度门槛
-  fastBurstScreens: 1,     // 或：一个采样窗口内滑过几屏
-  fastZoneScreens: 3,      // 快速档提前几屏开始预取
-  fastSampleMs: 160,       // 速度采样窗口
-  fastGapMs: 150,          // 快速档重入间隔
-  fastMaxRun: 8,           // 一次甩动最多预取几页
-  fastRunResetMs: 2000,    // 静默多久后计数清零
+  thresholdPx: 140,        // proximity zone, px from the top
+  minUpScrollPx: 48,       // accumulated upward scroll required in proximity mode
+  cooldownMs: 900,         // min gap between proximity triggers
+  fastWheelPxPerSec: 900,  // velocity threshold
+  fastBurstScreens: 1,     // or: viewports scrolled within one sample window
+  fastZoneScreens: 3,      // prefetch starts this many screens above the viewport
+  fastSampleMs: 160,       // velocity sampling window
+  fastGapMs: 150,          // re-entry gap for velocity triggers
+  fastMaxRun: 8,           // max pages per fling
+  fastRunResetMs: 2000,    // idle time that resets the fling counter
 };
 
-__DSH_AUTOLOAD_TUNING__ = null; // 恢复默认
+__DSH_AUTOLOAD_TUNING__ = null; // restore defaults
 ```
 
-嫌太敏感：把 `fastWheelPxPerSec` 提到 1500，或 `fastZoneScreens` 降到 2。
+Too eager? Raise `fastWheelPxPerSec` to 1500, or lower `fastZoneScreens` to 2.
 
-## 工作原理
+## How it works
 
-- 滚动容器靠 `[data-chat-flow]` 这个稳定属性定位（不用 CSS module 的哈希类名，那些随构建变）。
-- 「加载更早」是历史列里渲染的第一个 `button`，插件只认这个位置 + 文案 `加载更早 / Load earlier`。
-- 触发方式是对该按钮调 `click()` —— 和真人点击走完全一样的代码路径。
-- 按钮处于 `disabled` 或文案变成「加载中」时一律不点，所以不会重入。
+- The scrollport is located by the stable `[data-chat-flow]` attribute (not CSS-module hashed class names, which change per build).
+- "Load earlier" is the first `button` rendered inside the transcript column; the plugin matches that position plus the label `加载更早 / Load earlier`.
+- The trigger is `button.click()` — the exact same code path as a human click.
+- A disabled button, or one whose label has switched to a loading state, is never clicked, so the load cannot re-enter.
 
-插件不持有数据、不暴露 API。按钮消失或禁用时，所有触发都是空操作。
+The plugin holds no data and exposes no API. When the button is gone or disabled, every trigger is a no-op.
 
-## 已知限制
+## Limitations
 
-- **只改触发，不改渲染。** 一次翻页仍然是 500 行全量挂载，主线程 300–630 ms 的顿挫依旧存在，只是被滚动的惯性盖住了。真正的渲染窗口化见上游讨论 [#7579](https://github.com/deepseek-ai/deepseek-harness/discussions/7579)。
-- 页面向上接近顶部前，未驻留的历史不占内存（只驻留尾部窗口）；载入后不会自动卸载。
-- 依赖 DOM 结构 `[data-chat-flow]` 和按钮文案，官方改这两样会失效。
-- 仅在 Firefox（159）上实测校准过；Chromium 走像素模式，速度归一化已处理，但未逐档验证。
+- **Trigger only, not rendering.** A page is still 500 rows mounted at once, and the 300–630ms main-thread hitch remains — it is merely hidden by scroll momentum. Real render windowing is tracked upstream in [#7579](https://github.com/deepseek-ai/deepseek-harness/discussions/7579).
+- History outside the resident window occupies no memory until loaded; once loaded it is not unloaded automatically.
+- Depends on the `[data-chat-flow]` DOM structure and the button label. Either changing upstream breaks it.
+- Calibrated on Firefox 159 only. Chromium reports pixel-mode deltas and the normalization handles that, but the thresholds were not verified notch-by-notch there.
 
-## 相关
+## Related
 
-- 上游是 Discussions 而非 Issues（仓库关闭了 Issues 入口）。
-- 相关讨论：`#359`（长任务后卡死）、`#7579`（聊天折叠只隐藏不卸载，渲染窗口化方案已有实现）、`#3726`（单页十几 MB 导致历史拉取超时）、`#6200`（分页未完成时过程折叠被禁用）。
+- Upstream uses Discussions, not Issues (the Issues tab is closed).
+- Relevant threads: `#359` (page freezes after long tasks), `#7579` (chat collapse hides but does not unmount; a render-windowing patch exists), `#3726` (multi-MB pages time out history fetches), `#6200` (process collapse silently disabled while paging is incomplete).
 
 ## License
 
