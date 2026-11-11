@@ -1,0 +1,33 @@
+{
+  "name": "dsh-auto-load-earlier",
+  "version": "0.2.0",
+  "description": "Scroll-driven autoload for the DSH chat history window: wheels up near the top trigger the existing \"Load earlier\" page.",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "chat",
+    "history",
+    "pagination"
+  ],
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": []
+    }
+  }
+}
