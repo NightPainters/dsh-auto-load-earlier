@@ -1,16 +1,21 @@
 {
   "name": "dsh-auto-load-earlier",
   "version": "0.2.0",
-  "description": "Scroll-driven autoload for the DSH chat history window: wheels up near the top trigger the existing \"Load earlier\" page.",
+  "description": "Scroll-driven autoload for DeepSeek Harness chat history: flicking up prefetches earlier pages before you hit the top.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NightPainters/dsh-auto-load-earlier.git"
+  },
   "keywords": [
     "deepseek-harness",
     "dsh",
     "dsh-plugin",
-    "chat",
-    "history",
-    "pagination"
+    "chat-ui",
+    "infinite-scroll",
+    "scroll-pagination",
+    "history-paging"
   ],
   "main": "./lib/index.js",
   "exports": {
@@ -23,6 +28,7 @@
     "lib/client.js",
     "README.md",
     "README.zh.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "dsh": {
